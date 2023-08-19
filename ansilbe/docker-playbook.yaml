@@ -1,0 +1,56 @@
+---
+- name: Install Docker 
+  hosts: docker_ec2_server
+  become: true
+  tasks:
+    - name: install docker
+      yum:
+        name:
+          - docker 
+        state: present
+        update_cache: true
+    - name: append group to ec2-user
+      user:
+        name: ec2-user
+        groups: docker
+        append: true
+    - name: Reconnect to server
+      meta: reset_connection
+
+    - name: start docker service
+      systemd:
+        name: docker
+        state: started
+
+    - name: Install docker pythom module
+      pip:
+        name: docker
+        
+
+- name: Donwload docker compose
+  hosts: docker_ec2_server
+  become: true
+  tasks:
+    - name: Donwload docker-compose file
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-{{lookup('pipe','uname -s')}}-{{lookup('pipe','uname -m')}}"
+        dest: /usr/local/bin/docker-compose
+        mode: +x
+
+- name: Test docker 
+  hosts: docker_ec2_server
+  become: true
+  tasks:
+    - name: test pull image form docker 
+      # command: docker pull redis
+      docker_image:
+        name: redis
+        source: pull
+
+    - name: run image
+      docker_container:
+        name: redis
+        state: started
+        image: nginx:stable
+        
+        
